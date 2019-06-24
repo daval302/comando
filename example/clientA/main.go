@@ -55,13 +55,36 @@ func main() {
 	}
 	defer conn.Close()
 
+	// Set a message channel for incoming messages from server
+	newMessage := make(chan []byte)
+
+	// Listen messages from server
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+			newMessage <- message
+		}
+	}()
+
 	// Listen for input message from the console and incoming messages
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		select {
+		case m := <-newMessage:
+			// decode UUID
+			// ...
+			fmt.Println(string(m))
+
 		default:
 			fmt.Print("send: ")
 			message, _ := reader.ReadString('\n')
+
+			// Encode message UUID
+			// ...
 
 			// send the message to the server web socket
 			err := conn.WriteMessage(websocket.TextMessage, []byte(message))
