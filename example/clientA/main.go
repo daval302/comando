@@ -62,7 +62,14 @@ func main() {
 		default:
 			fmt.Print("send: ")
 			message, _ := reader.ReadString('\n')
-			fmt.Println(message)
+
+			// send the message to the server web socket
+			err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+			if err != nil {
+				log.Println("write:", err)
+				return
+			}
+
 		}
 	}
 }

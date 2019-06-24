@@ -1,11 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
+)
+
+// Set time waiting for write, pong and ping period
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512
+)
+
+// Byte encding for messages
+var (
+	newline = []byte{'\n'}
+	space   = []byte{' '}
 )
 
 // Client is a middleman between the websocket connection and the server.
@@ -40,6 +56,28 @@ var (
 	// Unregister requests from clients.
 	unregister chan *Client
 )
+
+func (c *Client) readPump() {
+	defer func() {
+		unregister <- c
+		c.conn.Close()
+	}()
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		// send the messsage to channel broadcast in order to be sent to other clients
+		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		broadcast <- message
+	}
+}
 
 func handleClients() {
 	for {
@@ -86,6 +124,9 @@ func main() {
 		}
 		client := &Client{conn: conn, send: make(chan []byte, 256)}
 		register <- client
+
+		// listen for incoming messages from client
+		go client.readPump()
 
 		// show up the client logged with the UUID connected
 		// ...
