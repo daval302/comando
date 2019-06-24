@@ -2,9 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"net/url"
 	"os"
+
+	"github.com/gorilla/websocket"
 )
 
 type Conf struct {
@@ -12,7 +17,14 @@ type Conf struct {
 	ID   string
 }
 
-var conf Conf
+var (
+	// DTO for the json configuration file
+	conf Conf
+
+	// Default address
+	// Edit this line later as Test requirements
+	addr = flag.String("addr", "localhost:8080", "http service address")
+)
 
 func main() {
 
@@ -31,6 +43,14 @@ func main() {
 	// get 2 bytes json as ID
 	clientID := []byte(conf.ID)
 
-	//fmt.Printf("client : %#x\n", clientID)
-	fmt.Print(clientID)
+	fmt.Printf("client : %#x\n", clientID)
+
+	// Enstablish a connection with the web socket server
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
+	fmt.Printf("connecting to %s\n", u.String())
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+	defer conn.Close()
 }

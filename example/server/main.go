@@ -68,11 +68,17 @@ func main() {
 
 	flag.Parse()
 
+	// initialize channels
+	broadcast = make(chan []byte)
+	register = make(chan *Client)
+	unregister = make(chan *Client)
+	clients = make(map[*Client]bool)
+
 	// Goroutine to handle incoming client to the server websocket
 	go handleClients()
 
 	// Expose ednpoints for incoming connections
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
@@ -80,7 +86,13 @@ func main() {
 		}
 		client := &Client{conn: conn, send: make(chan []byte, 256)}
 		register <- client
+
+		// show up the client logged with the UUID connected
+		// ...
+		log.Println("client connected")
 	})
+
+	log.Println("Listening for imcoming connection")
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
