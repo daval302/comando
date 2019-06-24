@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -53,4 +54,15 @@ func main() {
 		log.Fatal("dial:", err)
 	}
 	defer conn.Close()
+
+	// Listen for input message from the console and incoming messages
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		select {
+		default:
+			fmt.Print("send: ")
+			message, _ := reader.ReadString('\n')
+			fmt.Println(message)
+		}
+	}
 }
