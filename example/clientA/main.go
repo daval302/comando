@@ -52,6 +52,9 @@ func EncodeUUID(jsonID string) int64 {
 // DecodeUUID decode the id from the uuid
 func DecodeUUID(uuid int64) string {
 
+	// zeros 6 bytes left
+	uuid &= 0x000000FF
+
 	// convert to string hex
 	ret := strconv.FormatInt(uuid, 16)
 
@@ -71,11 +74,6 @@ func main() {
 	byteValue, _ := ioutil.ReadAll(configFile)
 
 	json.Unmarshal(byteValue, &conf)
-
-	// get 2 bytes json as ID
-	clientID, err := strconv.ParseInt(conf.ID, 16, 16)
-
-	fmt.Printf("client : %#x\n", clientID)
 
 	// Enstablish a connection with the web socket server
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
@@ -115,16 +113,9 @@ func main() {
 			message, _ := reader.ReadString('\n')
 
 			// Encode message UUID
-			// get the number of seconds since 01/01/1970
-			timestamp := time.Now().Unix()
-
-			// shift left 2 bytes from the timestamp
-			timestamp = timestamp << 16
-			// add the 2 byte id to the right
-			uuid := timestamp ^ int64(clientID)
 
 			// Append the uuid to the the message
-			message = string(uuid) + ": " + message
+			message = DecodeUUID(EncodeUUID(conf.ID)) + ": " + message
 
 			// send the message to the server web socket
 			err := conn.WriteMessage(websocket.TextMessage, []byte(message))
