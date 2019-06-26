@@ -31,8 +31,8 @@ var (
 )
 
 // EncodeUUID encode string to int64 rapresentation
-func EncodeUUID(uuid string) int64 {
-	id, err := strconv.ParseInt(uuid, 0, 16)
+func EncodeUUID(jsonID string) int64 {
+	id, err := strconv.ParseInt(jsonID, 0, 16)
 	if err != nil {
 		log.Fatal("Bad conversion", err)
 	}
@@ -47,6 +47,15 @@ func EncodeUUID(uuid string) int64 {
 	timestamp += id
 
 	return timestamp
+}
+
+// DecodeUUID decode the id from the uuid
+func DecodeUUID(uuid int64) string {
+
+	// convert to string hex
+	ret := strconv.FormatInt(uuid, 16)
+
+	return ret
 }
 
 func main() {
