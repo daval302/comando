@@ -104,18 +104,24 @@ func main() {
 	for {
 		select {
 		case m := <-newMessage:
+
 			// decode UUID
-			// ...
-			fmt.Println(string(m))
+			uuidMessage, err := strconv.ParseInt(string(m[:8]), 16, 64)
+			if err != nil {
+				log.Fatal("Bad conversion incoming messages")
+			}
+
+			fmt.Println(DecodeUUID(uuidMessage) + string(m[8:]))
 
 		default:
 			fmt.Print("send: ")
 			message, _ := reader.ReadString('\n')
 
-			// Encode message UUID
+			// Encode message ID to UUID
+			idMessage := strconv.FormatInt(EncodeUUID(conf.ID), 16)
 
 			// Append the uuid to the the message
-			message = DecodeUUID(EncodeUUID(conf.ID)) + ": " + message
+			message = idMessage + ": " + message
 
 			// send the message to the server web socket
 			err := conn.WriteMessage(websocket.TextMessage, []byte(message))
