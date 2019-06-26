@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Conf holds json configurations files
 type Conf struct {
 	Name string
 	ID   string
@@ -28,6 +29,25 @@ var (
 	// Edit this line later as Test requirements
 	addr = flag.String("addr", "localhost:8080", "http service address")
 )
+
+// EncodeUUID encode string to int64 rapresentation
+func EncodeUUID(uuid string) int64 {
+	id, err := strconv.ParseInt(uuid, 0, 16)
+	if err != nil {
+		log.Fatal("Bad conversion", err)
+	}
+
+	// Get the timestamp
+	timestamp := time.Now().Unix()
+
+	// zeros last 2 bytes of timestamp
+	timestamp &= 0xFFFFFF00
+
+	// add id to last 2 bytes
+	timestamp += id
+
+	return timestamp
+}
 
 func main() {
 
