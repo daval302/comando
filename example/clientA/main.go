@@ -46,7 +46,7 @@ func main() {
 			// print message only if id != this.id
 			combinedID, _ := binary.Varint(m[:8])
 			if combinedID != id {
-				fmt.Println(string(m[8:]))
+				fmt.Printf("%x: %s\n", combinedID, m[8:])
 			}
 
 		case m := <-userMessage:
