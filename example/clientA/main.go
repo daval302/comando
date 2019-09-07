@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -17,6 +18,9 @@ var (
 	// Default address
 	// Edit this line later as Test requirements
 	addr = flag.String("addr", "localhost:8080", "http service address")
+
+	// Id generated at program started
+	id = time.Now().Unix()
 )
 
 // EncodeUUID encode string to int64 rapresentation
@@ -94,9 +98,16 @@ func main() {
 		select {
 		case m := <-newMessage:
 
-			fmt.Println(string(m))
+			// print message only if id != this.id
+			combinedID, _ := binary.Varint(m[:8])
+			if combinedID != id {
+				fmt.Println(string(m[8:]))
+			}
 
 		case m := <-inputMessage:
+
+			// combine message with the id
+			m = combineIDWithMessage(id, m)
 
 			// send the message to the server web socket
 			err := conn.WriteMessage(websocket.TextMessage, m)
