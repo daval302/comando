@@ -1,58 +1,23 @@
 package main
 
 import (
-	"bufio"
 	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
 	"net/url"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
-	// Default address
-	// Edit this line later as Test requirements
+	// Default address and port as start up parameters
 	addr = flag.String("addr", "localhost:8080", "http service address")
 
-	// Id generated at program started
+	// Id generated at program started based on timestamp
 	id = time.Now().Unix()
 )
-
-// EncodeUUID encode string to int64 rapresentation
-func EncodeUUID(jsonID string) int64 {
-	id, err := strconv.ParseInt(jsonID, 0, 16)
-	if err != nil {
-		log.Fatal("Bad conversion", err)
-	}
-
-	// Get the timestamp
-	timestamp := time.Now().Unix()
-
-	// zeros last 2 bytes of timestamp
-	timestamp &= 0xFFFFFF00
-
-	// add id to last 2 bytes
-	timestamp += id
-
-	return timestamp
-}
-
-// DecodeUUID decode the id from the uuid
-func DecodeUUID(uuid int64) string {
-
-	// zeros 6 bytes left
-	uuid &= 0x000000FF
-
-	// convert to string hex
-	ret := strconv.FormatInt(uuid, 16)
-
-	return ret
-}
 
 func main() {
 
@@ -66,37 +31,17 @@ func main() {
 	defer conn.Close()
 
 	// Set a message channel for incoming messages from server and from user input
-	newMessage := make(chan []byte)
-	inputMessage := make(chan []byte)
+	serverMessage := make(chan []byte)
+	userMessage := make(chan []byte)
 
-	// Reader for input message from the console
-	reader := bufio.NewReader(os.Stdin)
+	// Messages from server will be sent to the channel serverMessage
+	go ListenMessagesFromServer(conn, serverMessage)
 
-	// Listen messages from server
-	go func() {
-		for {
-			_, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-			newMessage <- message
-		}
-	}()
-
-	// Listen for input messages
-	go func() {
-		for {
-			// fmt.Print("send: ")
-			message, _ := reader.ReadBytes('\n')
-			inputMessage <- message
-		}
-
-	}()
+	go ReadUserMessage(userMessage)
 
 	for {
 		select {
-		case m := <-newMessage:
+		case m := <-serverMessage:
 
 			// print message only if id != this.id
 			combinedID, _ := binary.Varint(m[:8])
@@ -104,7 +49,7 @@ func main() {
 				fmt.Println(string(m[8:]))
 			}
 
-		case m := <-inputMessage:
+		case m := <-userMessage:
 
 			// combine message with the id
 			m = combineIDWithMessage(id, m)
